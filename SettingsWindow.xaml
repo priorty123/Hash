@@ -1,0 +1,459 @@
+﻿<Window x:Class="HashDash.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Settings"
+        Width="900"
+        Height="650"
+        WindowStartupLocation="CenterOwner"
+        WindowState="Maximized"
+     
+        FontFamily="Segoe UI Variable"
+        ShowInTaskbar="False"
+        ResizeMode="CanResize"
+        MinWidth="800"
+        MinHeight="500">
+
+    <Grid Margin="40">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0">
+            <TextBlock Text="Settings" 
+                       FontSize="24" 
+                       FontWeight="SemiBold"/>
+            <TextBlock Text="Configure application preferences and automation" 
+                       FontSize="13" 
+                      
+                       Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <!-- Tab Control -->
+        <TabControl Grid.Row="2"
+                    FontSize="13"
+                    Padding="0">
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 TAB 1: DATABASE SETTINGS
+                 ═══════════════════════════════════════════════════════════ -->
+            <TabItem Header="Database">
+                <TabItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="12,8">
+                            <TextBlock Text="&#xE8F7;" 
+                                       FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                       FontSize="16"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="Database" 
+                                       FontSize="14"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </TabItem.HeaderTemplate>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="30,20">
+                    <StackPanel MaxWidth="700">
+
+                        <!-- Info Banner -->
+                        <Border 
+                                BorderBrush="#0078D4"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="16,12"
+                                Margin="0,0,0,30">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="&#xE946;" 
+                                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                               FontSize="18"
+                                               Foreground="#0078D4"
+                                               Margin="0,0,10,0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="Database Location" 
+                                               FontWeight="SemiBold"
+                                               FontSize="14"
+                                               Foreground="#0078D4"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap" 
+                                           FontSize="12" 
+                                         >
+                                    The database stores all process logs. Choose a location on a non-frozen partition if using DeepFreeze.
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Database Path -->
+                        <StackPanel Margin="0,0,0,0">
+                            <TextBlock Text="Database File Location" 
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,10"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0"
+                                        BorderBrush="#D0D0D0"
+                                        BorderThickness="1"
+                                        CornerRadius="4"
+                                       >
+                                    <TextBox x:Name="txtDatabasePath"
+                                             BorderThickness="0"
+                                             Height="44"
+                                             VerticalContentAlignment="Center"
+                                             Padding="14,0"
+                                             FontSize="13"/>
+                                </Border>
+
+                                <Button Grid.Column="2"
+                                        Content="Browse..."
+                                        Height="44"
+                                        Padding="24,0"
+                                        FontSize="13"
+                                        Click="BtnBrowseDatabase_Click"/>
+                            </Grid>
+
+                            <TextBlock Margin="0,8,0,0"
+                                       FontSize="12"
+                                  
+                                       TextWrapping="Wrap">
+                                <Run Text="Current: " FontWeight="SemiBold"/>
+                                <Run Text="{Binding ElementName=txtDatabasePath, Path=Text, Mode=OneWay}"/>
+                            </TextBlock>
+
+                            <Border Background="#FFF3CD"
+                                    BorderBrush="#FFC107"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                    Padding="12,10"
+                                    Margin="0,16,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚠" 
+                                               FontSize="16"
+                                               Foreground="#FF8C00"
+                                               Margin="0,0,8,0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock TextWrapping="Wrap" 
+                                               FontSize="12" 
+                                               Foreground="#856404">
+                                        <Run Text="Important:" FontWeight="SemiBold"/>
+                                        <Run Text="If using DeepFreeze, select a location on a non-frozen partition (e.g., D:\HashDash\ProcessLog.db)"/>
+                                    </TextBlock>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ═══════════════════════════════════════════════════════════
+                 TAB 2: AUTOMATION SETTINGS
+                 ═══════════════════════════════════════════════════════════ -->
+            <TabItem Header="Automation">
+                <TabItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="12,8">
+                            <TextBlock Text="&#xE945;" 
+                                       FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                       FontSize="16"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="Automation" 
+                                       FontSize="14"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </TabItem.HeaderTemplate>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="30,20">
+                    <StackPanel MaxWidth="700">
+
+                        <!-- Info Banner -->
+                        <Border 
+                                BorderBrush="#0078D4"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="16,12"
+                                Margin="0,0,0,30">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="&#xE946;" 
+                                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                               FontSize="18"
+                                               Foreground="#0078D4"
+                                               Margin="0,0,10,0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="Forensic Workflow Automation" 
+                                               FontWeight="SemiBold"
+                                               FontSize="14"
+                                               Foreground="#0078D4"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap" 
+                                           FontSize="12" 
+                                           >
+                                    When automation is enabled, HashDash monitors the source folder for a trigger file. 
+                                    Upon detection, it automatically processes all files using pre-configured metadata.
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Trigger File Pattern -->
+                        <StackPanel Margin="0,0,0,30">
+                            <TextBlock Text="Trigger File Name" 
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,10"/>
+
+                            <Border BorderBrush="#D0D0D0"
+                                    BorderThickness="1"
+                                    CornerRadius="4"
+                                   >
+                                <TextBox x:Name="txtTriggerPattern"
+                                         Text="ExtractionSummary.pdf"
+                                         BorderThickness="0"
+                                         Height="44"
+                                         VerticalContentAlignment="Center"
+                                         Padding="14,0"
+                                         FontSize="13"/>
+                            </Border>
+
+                            <TextBlock Margin="0,8,0,0"
+                                       FontSize="12"
+                                    
+                                       TextWrapping="Wrap">
+                                <Run Text="File to watch for (e.g., ExtractionSummary.pdf created when Cellebrite extraction completes)."/>
+                                <LineBreak/>
+                                <Run Text="The source folder configured in the main window will be monitored."/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Include Subdirectories -->
+                        <StackPanel Margin="0,0,0,30">
+                            <CheckBox x:Name="chkIncludeSubdirs"
+                                      IsChecked="True"
+                                      FontSize="14"
+                                      Padding="8,0,0,0">
+                                <TextBlock Text="Monitor subdirectories"
+                                           FontWeight="SemiBold"/>
+                            </CheckBox>
+
+                            <TextBlock Margin="32,6,0,0"
+                                       FontSize="12"
+                                       TextWrapping="Wrap">
+                                Scan all subfolders within the source directory for the trigger file.
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Automation Startup Delay -->
+                        <StackPanel Margin="0,0,0,0">
+                            <TextBlock Text="Automation Startup Delay"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,10"/>
+
+                            <CheckBox x:Name="chkDelayEnabled"
+                                      IsChecked="True"
+                                      FontSize="14"
+                                      Padding="8,0,0,0"
+                                      Margin="0,0,0,12">
+                                <TextBlock Text="Enable startup delay" FontWeight="SemiBold"/>
+                            </CheckBox>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0"
+                                        BorderBrush="#D0D0D0"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                    <TextBox x:Name="txtDelayMinutes"
+                                             Text="2"
+                                             BorderThickness="0"
+                                             Height="44"
+                                             VerticalContentAlignment="Center"
+                                             Padding="14,0"
+                                             FontSize="13"
+                                             IsEnabled="{Binding IsChecked, ElementName=chkDelayEnabled}"/>
+                                </Border>
+
+                                <TextBlock Grid.Column="2"
+                                           Text="minutes"
+                                           VerticalAlignment="Center"
+                                           FontSize="13"
+                                           Margin="0,0,0,0"/>
+                            </Grid>
+
+                            <TextBlock Margin="0,8,0,0"
+                                       FontSize="12"
+                                       TextWrapping="Wrap">
+                                <Run Text="Waits this many minutes after detecting the trigger file before processing."/>
+                                <LineBreak/>
+                                <Run Text="Use when the source folder needs time to fully assemble all files (e.g., after Cellebrite extraction completes writing)."/>
+                            </TextBlock>
+                        </StackPanel>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            <!-- ═══════════════════════════════════════════════════════════
+                 TAB 3: CASETRACE INTEGRATION
+                 ═══════════════════════════════════════════════════════════ -->
+            <TabItem Header="CaseTrace">
+                <TabItem.HeaderTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal" Margin="12,8">
+                            <TextBlock Text="&#xE8F7;"
+                                       FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                       FontSize="16"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="CaseTrace"
+                                       FontSize="14"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </DataTemplate>
+                </TabItem.HeaderTemplate>
+
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              Padding="30,20">
+                    <StackPanel MaxWidth="700">
+
+                        <!-- Info Banner -->
+                        <Border BorderBrush="#0078D4"
+                                BorderThickness="1"
+                                CornerRadius="6"
+                                Padding="16,12"
+                                Margin="0,0,0,30">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                    <TextBlock Text="&#xE946;"
+                                               FontFamily="{StaticResource SymbolThemeFontFamily}"
+                                               FontSize="18"
+                                               Foreground="#0078D4"
+                                               Margin="0,0,10,0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="CaseTrace Auto-Ingest Integration"
+                                               FontWeight="SemiBold"
+                                               FontSize="14"
+                                               Foreground="#0078D4"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="12">
+                                    After each transfer HashDash writes a copy of the session JSON to this folder.
+                                    CaseTrace monitors the same folder and automatically ingests new files.
+                                    Set both this path and the CaseTrace Watch Folder (Settings → General → HashDash Integration) to the same location.
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Log Folder -->
+                        <StackPanel Margin="0,0,0,24">
+                            <TextBlock Text="CaseTrace Log Folder"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Margin="0,0,0,10"/>
+
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="12"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0"
+                                        BorderBrush="#D0D0D0"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                    <TextBox x:Name="txtLogDirectory"
+                                             BorderThickness="0"
+                                             Height="44"
+                                             VerticalContentAlignment="Center"
+                                             Padding="14,0"
+                                             FontSize="13"/>
+                                </Border>
+
+                                <Button Grid.Column="2"
+                                        Content="Browse..."
+                                        Height="44"
+                                        Padding="24,0"
+                                        FontSize="13"
+                                        Click="BtnBrowseLogDirectory_Click"/>
+                            </Grid>
+
+                            <TextBlock Margin="0,8,0,0"
+                                       FontSize="12"
+                                       TextWrapping="Wrap">
+                                <Run Text="Example: "/>
+                                <Run Text="C:\CaseTrace\HashDashWatch" FontFamily="Consolas"/>
+                                <LineBreak/>
+                                <Run Text="Leave blank to use the default: "/>
+                                <Run Text="%LOCALAPPDATA%\HashDash\Logs" FontFamily="Consolas"/>
+                            </TextBlock>
+                        </StackPanel>
+
+                        <!-- Workflow hint -->
+                        <Border Background="#F0FFF4"
+                                BorderBrush="#28A745"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Padding="14,12">
+                            <StackPanel>
+                                <TextBlock Text="Setup checklist"
+                                           FontWeight="SemiBold"
+                                           FontSize="13"
+                                           Foreground="#155724"
+                                           Margin="0,0,0,8"/>
+                                <TextBlock TextWrapping="Wrap"
+                                           FontSize="12"
+                                           Foreground="#155724">
+                                    1. Set the folder above (e.g. C:\CaseTrace\HashDashWatch)&#x0a;
+                                    2. In CaseTrace → Settings → General → HashDash Integration, set the same folder as the Watch Folder and enable Auto-Ingest&#x0a;
+                                    3. Restart both apps — transfers will now auto-import into CaseTrace
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- Footer Buttons -->
+        <StackPanel Grid.Row="4" 
+                    Orientation="Horizontal" 
+                    HorizontalAlignment="Right">
+            <Button Content="Cancel"
+                    Width="130"
+                    Height="44"
+                    Margin="0,0,12,0"
+                    Click="BtnCancel_Click"
+                    FontSize="14"/>
+            <Button Content="Save Settings"
+                    Style="{StaticResource AccentButtonStyle}"
+                    Width="150"
+                    Height="44"
+                    Click="BtnSave_Click"
+                    FontSize="14"
+                    FontWeight="SemiBold"/>
+        </StackPanel>
+    </Grid>
+</Window>

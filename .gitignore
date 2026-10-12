@@ -1,0 +1,16 @@
+## Build output
+bin/
+obj/
+publish/
+
+## IDE state
+.vs/
+*.user
+*.suo
+
+## Runtime files the app writes next to the executable
+HashDash_settings.json
+Logs/
+*.db
+*.db-wal
+*.db-shm
