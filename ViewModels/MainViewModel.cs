@@ -20,7 +20,7 @@ using Microsoft.Win32;
 
 namespace HashDash.ViewModels
 {
-    public class MainViewModel : BaseViewModel, IDataErrorInfo
+    public partial class MainViewModel : BaseViewModel, IDataErrorInfo
     {
         private const string AppName    = "HashDash";
         private const string AppVersion = "2.2";
@@ -43,6 +43,7 @@ namespace HashDash.ViewModels
         private readonly NotificationService       _notificationService;
         private readonly ToastNotificationService  _toastService;
         private readonly MtpDeviceService          _mtpDeviceService;
+        private readonly IosAfcService             _iosService;
 
         // ── State ─────────────────────────────────────────────────────────
         private CancellationTokenSource? _cts;
@@ -51,6 +52,7 @@ namespace HashDash.ViewModels
         private bool     _sourceIsMtp;
         private string?  _sourceMtpDeviceId;
         private string   _sourceMtpFriendlyName = "";
+        private bool     _sourceIsIos;
         private int      _total;
         private int      _current;
         private DateTime _processStartTime;
@@ -103,14 +105,14 @@ namespace HashDash.ViewModels
         public string SearchText
         {
             get => _searchText;
-            set { if (SetProperty(ref _searchText, value)) _filesView.Refresh(); }
+            set { if (SetProperty(ref _searchText, value)) OnFilterChanged(); }
         }
 
         private string _statusFilter = "All";
         public string StatusFilter
         {
             get => _statusFilter;
-            set { if (SetProperty(ref _statusFilter, value)) _filesView.Refresh(); }
+            set { if (SetProperty(ref _statusFilter, value)) OnFilterChanged(); }
         }
 
         public static IReadOnlyList<string> StatusFilterOptions { get; } = new[]
@@ -398,6 +400,7 @@ namespace HashDash.ViewModels
             _monitorService     = new FileMonitorService(new AutomationConfig());
             _detailedLogService = new DetailedLogService();
             _mtpDeviceService   = new MtpDeviceService();
+            _iosService         = new IosAfcService();
 
             _notificationService = new NotificationService();
             _notificationService.NotificationAdded += (_, _) =>
@@ -444,6 +447,7 @@ namespace HashDash.ViewModels
             {
                 UpdateSelectAllState();
                 OnPropertyChanged(nameof(IsClearEnabled));
+                MarkViewsDirty();
             };
 
             _monitorService.FolderDetected += OnFolderDetected;
@@ -485,9 +489,9 @@ namespace HashDash.ViewModels
             CurrentDateTime = DateTime.Now.ToString("dd/MM/yyyy HH:mm");
 
         private void UpdateSourceDriveLabel() =>
-            SourceDriveLabel = _sourceIsMtp
-                ? $"(MTP: {_sourceMtpFriendlyName})"
-                : DriveInfoHelper.FormatDriveLabelForDisplay(_sourcePath, ComputerName);
+            SourceDriveLabel = _sourceIsIos ? $"(iOS: {_sourceMtpFriendlyName})"
+                             : _sourceIsMtp ? $"(MTP: {_sourceMtpFriendlyName})"
+                             : DriveInfoHelper.FormatDriveLabelForDisplay(_sourcePath, ComputerName);
 
         private void UpdateDestinationDriveLabel() =>
             DestinationDriveLabel = DriveInfoHelper.FormatDriveLabelForDisplay(_destinationPath, ComputerName);
@@ -498,16 +502,35 @@ namespace HashDash.ViewModels
         private void DismissAutomationMessage() =>
             AutomationStatusMessage = "";
 
+        private bool _selectionRefreshPending;
+
+        /// <summary>
+        /// Coalesces selection-state refreshes: toggling a folder or album flips thousands of
+        /// IsSelected flags, and recomputing the header and folder-tree checkboxes once per
+        /// flag would be quadratic.
+        /// </summary>
         private void UpdateSelectAllState()
         {
-            bool? next = Files.Count == 0              ? false
-                       : Files.All(f => f.IsSelected)  ? true
-                       : Files.All(f => !f.IsSelected) ? false
-                       : (bool?)null;
+            if (_selectionRefreshPending) return;
+            _selectionRefreshPending = true;
 
-            if (_isAllSelected == next) return;
-            _isAllSelected = next;
-            OnPropertyChanged(nameof(IsAllSelected));
+            Application.Current.Dispatcher.BeginInvoke(() =>
+            {
+                _selectionRefreshPending = false;
+
+                bool? next = Files.Count == 0              ? false
+                           : Files.All(f => f.IsSelected)  ? true
+                           : Files.All(f => !f.IsSelected) ? false
+                           : (bool?)null;
+
+                if (_isAllSelected != next)
+                {
+                    _isAllSelected = next;
+                    OnPropertyChanged(nameof(IsAllSelected));
+                }
+
+                RefreshFolderCheckStates();
+            }, DispatcherPriority.Background);
         }
 
         // ── Browse commands ───────────────────────────────────────────────
@@ -544,9 +567,11 @@ namespace HashDash.ViewModels
 
                 _baseSourceFolder      = folder;
                 _sourceIsMtp           = false;
+                _sourceIsIos           = false;
                 _sourceMtpDeviceId     = null;
                 _sourceMtpFriendlyName = "";
                 _mtpDeviceService.Disconnect();
+                _iosService.Disconnect();
                 _custodyService.LogAction("Source Folder Selected", folder);
                 Files.Clear();
                 _filePathSet.Clear();
@@ -589,10 +614,18 @@ namespace HashDash.ViewModels
             var picker = new MtpDevicePickerWindow { Owner = Application.Current.MainWindow };
             if (picker.ShowDialog() != true || picker.SelectedDevice == null) return;
 
-            var device = picker.SelectedDevice;
+            if (picker.SelectedDevice.Ios != null)
+            {
+                await ConnectIosDeviceAsync(picker.SelectedDevice.Ios, picker.ScanEntireMediaPartition);
+                return;
+            }
+
+            var device = picker.SelectedDevice.Mtp!;
 
             Files.Clear();
             _filePathSet.Clear();
+            _iosService.Disconnect();
+            _sourceIsIos = false;
 
             using var cts = new CancellationTokenSource();
             _cts = cts;
@@ -648,9 +681,17 @@ namespace HashDash.ViewModels
                 }, DispatcherPriority.Normal);
             });
 
+            var skipped = new System.Collections.Generic.List<string>();
             var entries = await Task.Run(
-                () => _mtpDeviceService.EnumerateFilesRecursive(deviceId, cancellationToken, progress),
+                () => _mtpDeviceService.EnumerateFilesRecursive(deviceId, cancellationToken, progress, skipped),
                 cancellationToken);
+
+            foreach (string folder in skipped)
+                _custodyService.LogAction("MTP Folder Refused By Device", $"{displayRoot}\\{folder}");
+            if (skipped.Count > 0)
+                _toastService.ShowWarning("Folders Refused",
+                    $"The device refused to list {skipped.Count} folder(s): {string.Join(", ", skipped.Take(5))}" +
+                    (skipped.Count > 5 ? ", ..." : ""));
 
             CurrentFileText = $"Loading {entries.Count:N0} files into the list...";
 
@@ -1130,9 +1171,9 @@ FileDateValue = fi.LastWriteTime,
 }, DispatcherPriority.Normal);
                     });
 
-                    var (md5Hash, sha256Hash) = f.IsMtpSource
+                    var (md5Hash, sha256Hash) = f.IsDeviceSource
                         ? await _hashService.ComputeHashPairAsync(
-                            () => _mtpDeviceService.OpenRead(f.MtpDeviceId!, f.MtpDevicePath!),
+                            () => OpenDeviceStream(f),
                             f.FileSizeBytes, Md5Enabled, Sha256Enabled, token, hashProgress)
                         : await _hashService.ComputeHashPairAsync(
                             f.FullPath, Md5Enabled, Sha256Enabled, token, hashProgress);
@@ -1236,9 +1277,9 @@ Application.Current.Dispatcher.InvokeAsync(() =>
 }, DispatcherPriority.Normal);
                     });
 
-                    (srcMd5, srcSha256) = f.IsMtpSource
+                    (srcMd5, srcSha256) = f.IsDeviceSource
                         ? await _hashService.ComputeHashPairAsync(
-                            () => _mtpDeviceService.OpenRead(f.MtpDeviceId!, f.MtpDevicePath!),
+                            () => OpenDeviceStream(f),
                             f.FileSizeBytes, Md5Enabled, Sha256Enabled, token, srcHashProgress)
                         : await _hashService.ComputeHashPairAsync(
                             f.FullPath, Md5Enabled, Sha256Enabled, token, srcHashProgress);
@@ -1593,9 +1634,9 @@ Application.Current.Dispatcher.InvokeAsync(() =>
 
             try
             {
-                var result = entry.IsMtpSource
+                var result = entry.IsDeviceSource
                     ? await _fileCopyService.CopyFromStreamWithProgressAsync(
-                        () => _mtpDeviceService.OpenRead(entry.MtpDeviceId!, entry.MtpDevicePath!),
+                        () => OpenDeviceStream(entry),
                         entry.FileSizeBytes, destinationPath, token)
                     : await _fileCopyService.CopyFileWithProgressAsync(
                         entry.FullPath, destinationPath, token);
@@ -2181,9 +2222,11 @@ Application.Current.Dispatcher.InvokeAsync(() =>
             SecondaryDestinationPath = "";
             _baseSourceFolder        = "";
             _sourceIsMtp             = false;
+            _sourceIsIos             = false;
             _sourceMtpDeviceId       = null;
             _sourceMtpFriendlyName   = "";
             _mtpDeviceService.Disconnect();
+            _iosService.Disconnect();
             _integrityService.Clear();
             _custodyService.LogAction("File List Cleared", "");
             ResetProgress();
@@ -2435,7 +2478,8 @@ Application.Current.Dispatcher.InvokeAsync(() =>
                  && !Contains(f.Sha256,      term) && !Contains(f.DestSha256,   term)
                  && !Contains(f.Md5,         term) && !Contains(f.DestMd5,      term)
                  && !Contains(f.FileDate,    term) && !Contains(f.TransferDate, term)
-                 && !Contains(f.SizeDisplay, term))
+                 && !Contains(f.SizeDisplay, term)
+                 && !Contains(f.PhotoAlbumsDisplay, term) && !Contains(f.LibraryRole, term))
                     return false;
             }
 

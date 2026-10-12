@@ -288,6 +288,38 @@ public class VersionExtension : MarkupExtension
     }
 
 
+    // ═══════════════════════════════════════════════════════════════════
+    // DIRECTORY / THUMBNAIL VIEWS
+    // ═══════════════════════════════════════════════════════════════════
+
+    private void TvFolders_SelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
+    {
+        if (e.NewValue is FolderNode node)
+            ViewModel.SelectedFolder = node;
+    }
+
+    private const double ThumbnailTileWidth = 176; // 168 tile + 2 × 4 margin
+
+    private void ThumbnailHost_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // Leave room for the vertical scrollbar and list padding.
+        ViewModel.ThumbnailColumns = (int)((e.NewSize.Width - 40) / ThumbnailTileWidth);
+    }
+
+    private void ThumbnailTile_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: ThumbnailTile tile })
+            ViewModel.RequestThumbnail(tile);
+    }
+
+    // Recycled row containers get a new tile without raising Loaded again.
+    private void ThumbnailTile_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is ThumbnailTile tile && sender is FrameworkElement { IsLoaded: true })
+            ViewModel.RequestThumbnail(tile);
+    }
+
+
     private void RefreshColumnWidths()
     {
         Dispatcher.InvokeAsync(() =>

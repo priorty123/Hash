@@ -79,6 +79,36 @@ namespace HashDash.Models
         }
 
         /// <summary>
+        /// True when this file lives on an iOS device read over Apple File Conduit
+        /// (IosAfcService). FullPath holds a synthesized display path; IosDevicePath is the
+        /// media-root relative path used to read it.
+        /// </summary>
+        public bool IsIosSource { get; set; }
+
+        public string? IosDevicePath { get; set; }
+
+        /// <summary>True for any source without a real filesystem path (MTP or iOS).</summary>
+        public bool IsDeviceSource => IsMtpSource || IsIosSource;
+
+        /// <summary>
+        /// Photos-app groupings this file belongs to, as "Section/Name" — e.g.
+        /// "Albums/WhatsApp", "Saved by App/Snapchat", "Utilities/Hidden". iOS sources only.
+        /// </summary>
+        public IReadOnlyList<string> PhotoGroups { get; set; } = Array.Empty<string>();
+
+        /// <summary>Album / app names for the grid and exports, e.g. "WhatsApp; Favourites".</summary>
+        public string PhotoAlbumsDisplay =>
+            string.Join("; ", PhotoGroups
+                .Where(g => !g.StartsWith(Services.IosPhotoLibraryService.SectionMediaTypes + "/"))
+                .Select(g => g.Substring(g.IndexOf('/') + 1)));
+
+        /// <summary>The app that saved the item into the Photos library, when iOS recorded one.</summary>
+        public string SavedByApp { get; set; } = "";
+
+        /// <summary>How the file relates to the Photos library: Original, Live Photo video, Edited render, Thumbnail...</summary>
+        public string LibraryRole { get; set; } = "";
+
+        /// <summary>
         /// Raw byte count from FileInfo.Length — OS metadata read, zero file I/O.
         /// </summary>
         public long FileSizeBytes

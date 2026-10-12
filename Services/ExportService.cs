@@ -56,7 +56,10 @@ namespace HashDash.Services
                 "\"File Date\"," +
                 "\"Status\"," +
                 "\"Verification\"," +
-                "\"Error Detail\"");
+                "\"Error Detail\"," +
+                "\"Photos Albums\"," +
+                "\"Saved By App\"," +
+                "\"Library Role\"");
 
             string algsUsed = (md5Enabled ? "MD5" : "") +
                               (md5Enabled && sha256Enabled ? ", " : "") +
@@ -80,7 +83,10 @@ namespace HashDash.Services
                     $"\"{FileNameHelper.EscapeCsv(f.FileDate)}\"," +
                     $"\"{FileNameHelper.EscapeCsv(f.CopyStatus)}\"," +
                     $"\"{FileNameHelper.EscapeCsv(f.VerificationResult)}\"," +
-                    $"\"{FileNameHelper.EscapeCsv(f.ErrorDetail)}\"");
+                    $"\"{FileNameHelper.EscapeCsv(f.ErrorDetail)}\"," +
+                    $"\"{FileNameHelper.EscapeCsv(f.PhotoAlbumsDisplay)}\"," +
+                    $"\"{FileNameHelper.EscapeCsv(f.SavedByApp)}\"," +
+                    $"\"{FileNameHelper.EscapeCsv(f.LibraryRole)}\"");
             }
 
             return sb.ToString();
@@ -156,7 +162,10 @@ namespace HashDash.Services
                     "\"File Date\"," +
                     "\"Status\"," +
                     "\"Verification\"," +
-                    "\"Error Detail\"");
+                    "\"Error Detail\"," +
+                    "\"Photos Albums\"," +
+                    "\"Saved By App\"," +
+                    "\"Library Role\"");
 
                 foreach (var f in slice)
                 {
@@ -175,7 +184,10 @@ namespace HashDash.Services
                         $"\"{FileNameHelper.EscapeCsv(f.FileDate)}\"," +
                         $"\"{FileNameHelper.EscapeCsv(f.CopyStatus)}\"," +
                         $"\"{FileNameHelper.EscapeCsv(f.VerificationResult)}\"," +
-                        $"\"{FileNameHelper.EscapeCsv(f.ErrorDetail)}\"");
+                        $"\"{FileNameHelper.EscapeCsv(f.ErrorDetail)}\"," +
+                        $"\"{FileNameHelper.EscapeCsv(f.PhotoAlbumsDisplay)}\"," +
+                        $"\"{FileNameHelper.EscapeCsv(f.SavedByApp)}\"," +
+                        $"\"{FileNameHelper.EscapeCsv(f.LibraryRole)}\"");
                 }
 
                 File.WriteAllText(chunkPath, sb.ToString(), Encoding.UTF8);

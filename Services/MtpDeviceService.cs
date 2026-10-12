@@ -213,50 +213,75 @@ namespace HashDash.Services
             });
 
         /// <summary>
-        /// Recursively lists every file under the device root. Runs synchronously — callers
-        /// should wrap in Task.Run, matching how local folder enumeration is already handled
-        /// in MainViewModel. Reports the running count every 20 files (MTP GetFileInfo is a
-        /// per-item protocol round-trip and can be slow for large libraries) and honors
-        /// cancellation between files — the underlying device-side directory walk itself
-        /// isn't cancellable mid-call, only the per-file metadata phase after it.
+        /// Lists every file under the device root, walking one folder at a time. Runs
+        /// synchronously — callers should wrap in Task.Run. A folder the device refuses to
+        /// list (common for app folders) is added to skippedFolders and the walk carries on;
+        /// a single all-at-once recursive enumeration would instead abort on the first such
+        /// folder and silently return a partial list. Reports the running count every 20
+        /// files and honours cancellation between items.
         /// </summary>
         public List<MtpFileEntry> EnumerateFilesRecursive(
             string deviceId,
             CancellationToken cancellationToken = default,
-            IProgress<int>? progress = null) =>
+            IProgress<int>? progress = null,
+            List<string>? skippedFolders = null) =>
             ExecuteWithRetry(deviceId, device =>
             {
                 string root = device.GetRootDirectory().FullName;
                 var entries = new List<MtpFileEntry>();
+                var pending = new Stack<string>();
+                pending.Push(root);
 
-                foreach (var path in device.EnumerateFiles(root, "*", SearchOption.AllDirectories))
+                string Relative(string path) =>
+                    path.StartsWith(root, StringComparison.OrdinalIgnoreCase)
+                        ? path.Substring(root.Length).TrimStart('\\')
+                        : path;
+
+                while (pending.Count > 0)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
+                    string folder = pending.Pop();
 
-                    MediaFileInfo info;
+                    List<string> files, subfolders;
                     try
                     {
-                        info = device.GetFileInfo(path);
+                        files      = device.EnumerateFiles(folder).ToList();
+                        subfolders = device.EnumerateDirectories(folder).ToList();
                     }
-                    catch
+                    catch (COMException) when (folder != root)
                     {
-                        continue; // file vanished or is inaccessible mid-enumeration
+                        skippedFolders?.Add(Relative(folder));
+                        continue;
                     }
 
-                    string relative = path.StartsWith(root, StringComparison.OrdinalIgnoreCase)
-                        ? path.Substring(root.Length).TrimStart('\\')
-                        : info.Name;
-
-                    entries.Add(new MtpFileEntry
+                    foreach (var path in files)
                     {
-                        RelativePath  = relative,
-                        DevicePath    = path,
-                        Length        = (long)info.Length,
-                        LastWriteTime = info.LastWriteTime ?? DateTime.Now
-                    });
+                        cancellationToken.ThrowIfCancellationRequested();
 
-                    if (entries.Count % 20 == 0)
-                        progress?.Report(entries.Count);
+                        MediaFileInfo info;
+                        try
+                        {
+                            info = device.GetFileInfo(path);
+                        }
+                        catch
+                        {
+                            continue; // file vanished or is inaccessible mid-enumeration
+                        }
+
+                        entries.Add(new MtpFileEntry
+                        {
+                            RelativePath  = Relative(path),
+                            DevicePath    = path,
+                            Length        = (long)info.Length,
+                            LastWriteTime = info.LastWriteTime ?? DateTime.Now
+                        });
+
+                        if (entries.Count % 20 == 0)
+                            progress?.Report(entries.Count);
+                    }
+
+                    for (int i = subfolders.Count - 1; i >= 0; i--)
+                        pending.Push(subfolders[i]);
                 }
 
                 progress?.Report(entries.Count);
